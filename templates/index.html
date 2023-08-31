@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sample API</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script>
+        async function toggleAPI() {
+            const response = await fetch('/toggle', { method: 'POST' });
+            if (response.ok) {
+                window.location.reload();
+            }
+        }
+
+        async function fetchEndpointData() {
+            const endpoint = document.getElementById("endpointSelector").value;
+            const response = await fetch(`/api/${endpoint}`);
+            const data = await response.json();
+            document.getElementById("responseWindow").innerText = JSON.stringify(data, null, 4);
+        }
+    </script>
+</head>
+<body>
+
+    <h1>Sample API</h1>
+
+    {% if api_enabled %}
+        <button onclick="toggleAPI()">Disable API</button>
+        <p>API is currently <strong>enabled</strong>.</p>
+    {% else %}
+        <button onclick="toggleAPI()">Enable API</button>
+        <p>API is currently <strong>disabled</strong>.</p>
+    {% endif %}
+
+    <h2>Select Endpoint:</h2>
+    <select id="endpointSelector">
+        <option value="user">User</option>
+        <option value="order">Order</option>
+        <option value="nhl">NHL</option>
+    </select>
+    <button onclick="fetchEndpointData()">Fetch Data</button>
+
+    <h2>Response:</h2>
+    <pre id="responseWindow" style="border: 1px solid #ccc; padding: 10px;"></pre>
+
+</body>
+</html>

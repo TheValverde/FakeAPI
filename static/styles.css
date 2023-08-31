@@ -1,0 +1,40 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1e1e1e;
+    color: #ddd;
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2 {
+    color: #f2f2f2;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    background-color: #333;
+    border: 1px solid #444;
+    color: #fff;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #444;
+}
+
+select {
+    padding: 10px;
+    background-color: #333;
+    border: 1px solid #444;
+    color: #fff;
+}
+
+pre {
+    border: 1px solid #444;
+    background-color: #2e2e2e;
+    padding: 20px;
+    color: #d1d1d1;
+    white-space: pre-wrap;  /* To wrap text in <pre> */
+    word-wrap: break-word;  /* To wrap text in <pre> */
+}
