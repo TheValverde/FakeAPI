@@ -1,10 +1,41 @@
 from flask import Flask, jsonify, render_template, request
-import random
+import random, json, threading, time
+
 
 app = Flask(__name__)
 
 # Variable to keep track of whether the API is enabled or disabled
 api_enabled = False
+
+#Initialize game state
+game_state = {
+    "game_time": 0,
+    "score": {"home": 0, "away": 0},
+    "player_positions": {
+        "home": {},
+        "away": {}
+    },
+    "puck_position": [0, 0]
+}
+
+# Function to update the game state
+def update_game_state():
+    global game_state
+    while True:
+        game_state["game_time"] += 1
+        for team in ["home", "away"]:
+            for player in range(1, 12):  # Assuming 5 players per team
+                game_state["player_positions"][team][f"player{player}"] = [
+                    random.randint(0, 100), random.randint(0, 100)
+                ]
+        game_state["puck_position"] = [random.randint(0, 100), random.randint(0, 100)]
+        time.sleep(1)
+
+
+# Start the thread to update game state
+game_thread = threading.Thread(target=update_game_state)
+game_thread.daemon = True
+game_thread.start()
 
 # Sample data schema
 sample_data = {
@@ -55,6 +86,14 @@ sample_data = {
         }]
     }
 }
+
+@app.route('/api/nhl_game', methods=['GET'])
+def api_nhl_game():
+    global api_enabled
+    if api_enabled:
+        return jsonify(game_state), 200
+    else:
+        return "API is disabled", 503
 
 
 # Recursive function to generate sample data
