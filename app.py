@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, render_template, request
 import random, json, threading, time
+from math import sqrt
 
 
 app = Flask(__name__)
@@ -8,30 +9,109 @@ app = Flask(__name__)
 api_enabled = False
 
 #Initialize game state
+#Setting rink dims as 100x50 just to keep it simple
 game_state = {
     "game_time": 0,
     "score": {"home": 0, "away": 0},
-    "player_positions": {
-        "home": {},
-        "away": {}
-    },
-    "puck_position": [0, 0]
+    "player_positions": {"home": {}, "away": {}},  # Initialize as empty dictionaries
+    "puck_position": [50, 25],
+    "puck_possession": None,  # None or "home" or "away"
 }
+
+# Define roles
+ROLES = ["Center", "Wing", "Wing", "Defense", "Defense"]
+
+def init_players():
+    for team in ["home", "away"]:
+        for i, role in enumerate(ROLES):
+            player_key = f"player{i+1}"
+            game_state["player_positions"][team][player_key] = {
+                "position": [random.randint(0, 100), random.randint(0, 50)],
+                "role": role,
+                "state": "idle",
+            }
+init_players()
+def distance(point1, point2):
+    return sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
+
+def move_point(start, end, speed):
+    delta_x = end[0] - start[0]
+    delta_y = end[1] - start[1]
+    new_x = start[0] + delta_x * speed
+    new_y = start[1] + delta_y * speed
+    return [new_x, new_y]
+
+def closest_player_to_puck(team):
+    closest_player = None
+    closest_distance = float('inf')
+
+    for player, position in game_state["player_positions"][team].items():
+        dist = distance(position, game_state["puck_position"])
+        if dist < closest_distance:
+            closest_distance = dist
+            closest_player = player
+
+    return closest_player
+
+# Function to decide next action based on role and game state
+def decide_action(team, player_info):
+    if game_state["puck_possession"] == team:
+        if player_info["role"] == "Center":
+            return "make_pass" if random.random() > 0.5 else "take_shot"
+        elif player_info["role"] == "Wing":
+            return "position_for_pass"
+        else:  # Defense
+            return "defend"
+    else:
+        if player_info["role"] == "Defense":
+            return "defend"
+        else:
+            return "chase_puck"
+
+def move_based_on_state(player_info):
+    state = player_info["state"]
+    target_point = None
+    
+    if state == "chase_puck":
+        target_point = game_state["puck_position"]
+    elif state == "defend":
+        target_point = [25, 25]  # example defensive position
+    elif state == "position_for_pass":
+        target_point = [75, 25]  # example position for receiving pass
+    elif state == "make_pass":
+        target_point = [80, 20]  # example position for making a pass
+    elif state == "take_shot":
+        target_point = [100, 25]  # example position for taking a shot
+
+    if target_point:
+        return move_point(player_info["position"], target_point, 0.1)
+    else:
+        return player_info["position"]
+
 
 # Function to update the game state
 def update_game_state():
     global game_state
     while True:
         game_state["game_time"] += 1
+        puck_target = [random.randint(0, 100), random.randint(0, 50)]
+        game_state["puck_position"] = move_point(game_state["puck_position"], puck_target, 0.1)
+        
         for team in ["home", "away"]:
-            for player in range(1, 12):  # Assuming 5 players per team
-                game_state["player_positions"][team][f"player{player}"] = [
-                    random.randint(0, 100), random.randint(0, 100)
-                ]
-        game_state["puck_position"] = [random.randint(0, 100), random.randint(0, 100)]
+            for player_key, player_info in game_state["player_positions"][team].items():
+                player_info["state"] = decide_action(team, player_info)
+                player_info["position"] = move_based_on_state(player_info)
+
+        # Implement basic goal logic
+        if game_state["puck_position"][0] <= 0:
+            game_state["score"]["away"] += 1
+            game_state["puck_position"] = [50, 25]
+        elif game_state["puck_position"][0] >= 100:
+            game_state["score"]["home"] += 1
+            game_state["puck_position"] = [50, 25]
+            
         time.sleep(1)
-
-
+        
 # Start the thread to update game state
 game_thread = threading.Thread(target=update_game_state)
 game_thread.daemon = True
